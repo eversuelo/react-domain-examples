@@ -1,0 +1,72 @@
+:root{
+  --white: #fff;
+  --primary: #61ECBC;
+  --black:#182339;
+}
+html{
+  font-size: 62.5%;
+}
+body{
+  background-image: url('/bg.jpg');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  min-height: 100vh;
+  font-family: "Outfit", sans-serif;
+  font-optical-sizing: auto;
+  font-style: normal;
+}
+.container{
+  max-width: 60rem;
+  width: 95%;
+  margin: 0 auto;
+}
+
+.app-title{
+  font-size: 3.8rem;
+  color: var(--white);
+  text-align: center;
+  margin-top: 5rem;
+}
+.app-title span{
+  display: block;
+  color: var(--primary);
+  font-size: 4.4rem;
+}
+.content{
+  margin-top:5rem;
+  padding: 6rem 2rem;
+  background-color:var(--white);
+  border-radius: 1rem;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+}
+.form,.field{
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+.field label{
+  font-size: 1.8rem;
+  color: var(--black);
+}
+.form select{
+  padding: 1rem;
+  background-color: #ECEBEB;
+  font-size: 1.6rem;
+  border: none;
+  border-radius: 1rem;
+}
+.form [type="submit"]{
+  padding: 1rem;
+  background-color: var(--primary);
+  color: var(--black);
+  font-size: 1.8rem;
+  border: none;
+  border-radius: 1rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: background-color 0.3s;
+}
+.form [type="submit"]:hover{
+  background-color: #4F9E8D;
+}
