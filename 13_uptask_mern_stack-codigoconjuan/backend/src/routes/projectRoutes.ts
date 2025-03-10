@@ -28,7 +28,7 @@ router.put("/:id",
 router.delete("/:id", ProjectController.deleteProject);
 
 /** Routes for tasks */
-router.get("/:projectId/tasks", TaskController.getAllTasks);
+router.get("/:projectId/tasks",  validateProjectExists,TaskController.getAllTasks);
 router.post("/:projectId/tasks", 
     param('projectId').isMongoId().withMessage('El ID del Proyecto no es válido'),
     body('name').notEmpty().isString().withMessage('El nombre de la tarea es requerido'),
@@ -37,8 +37,8 @@ router.post("/:projectId/tasks",
     validateProjectExists,
     handleInputErrors,
         TaskController.createTask);
-router.get("/:projectId/tasks/:taskId", TaskController.getTaskById);
-router.put("/:projectId/tasks/:taskId", TaskController.updateTask);
-router.delete("/:projectId/tasks/:taskId", TaskController.deleteTask);
+router.get("/:projectId/tasks/:taskId", validateProjectExists, TaskController.getTaskById);
+router.put("/:projectId/tasks/:taskId", validateProjectExists, TaskController.updateTask);
+router.delete("/:projectId/tasks/:taskId", validateProjectExists, TaskController.deleteTask);
 
 export default router;

@@ -1,25 +1,22 @@
 import type { Request, Response } from "express";
 import Task from "../models/Task";
-import Project from "../models/Project";
 import { Types } from "mongoose";
 export class TaskController {
     /**
-     * Get all tasks by projectId.
+     * Get all tasks by project.id.
      */
     static async getAllTasks(req: Request, res: Response) {
         try {
-            const { projectId } = req.params;
-            if (!Types.ObjectId.isValid(projectId)) {
-                return res.status(400).json({ error: "Invalid project ID" });
+
+            const project = req.project;
+            if (!project) {
+                return res.status(404).json({ error: "Project not found in taskController" });
             }
-            const project=await Project.findById(projectId);
-            if(!project){
-                return res.status(404).json({error:"Project not found"});
-            }
-            const tasks = await Task.find({ project: projectId });
+            const tasks = await Task.find({ project: project.id });
             res.json(tasks);
         } catch (error) {
             res.status(500).json({ error: "Failed to retrieve tasks" });
+            console.error(error);
         }
     }
 
@@ -28,28 +25,24 @@ export class TaskController {
      */
     static async createTask(req: Request, res: Response) {
         try {
-            const { projectId } = req.params;
-            const project = await Project.findById(projectId);
-            if (!project) {
-                return res.status(404).json({ error: "Project not found" });
+
+            if (!req.project) {
+                return res.status(404).json({ error: "Project not found in taskController" });
             }
             const { name, description, status } = req.body;
-            const taskData = { name, description, project: project._id, status };
+            const taskData = { name, description, project: req.project._id, status };
             const newTask = new Task(taskData);
-            const result = await newTask.save();
-            if (!newTask) {
+            req.project.tasks.push(newTask._id as Types.ObjectId);
+
+            const result = await Promise.allSettled([await newTask.save(), await req.project.save()]);
+            if (result.some((r) => r.status === "rejected")) {
                 return res.status(400).json({ error: "Failed to create task" });
             }
 
-            project.tasks.push(newTask._id as Types.ObjectId);
-            const save=await project.save();
-            if(!save){
-                return res.status(400).json({ error: "Failed to link task to project, but task was created" ,task:newTask}); 
-            }
-            res.status(201).json(newTask);
+            return res.status(201).json({ message: "Task created",result }); 
         } catch (error) {
             console.error(error);
-            res.status(500).json({ error: "Failed to create task" });
+            return res.status(500).json({ error: "Failed to create task" });
         }
     }
 
@@ -58,8 +51,12 @@ export class TaskController {
      */
     static async getTaskById(req: Request, res: Response) {
         try {
-            const { projectId, taskId } = req.params;
-            const task = await Task.findOne({ _id: taskId, project: projectId });
+            const { taskId } = req.params;
+            const project = req.project;
+            if (!project) {
+                return res.status(404).json({ error: "Project not found in taskController" });
+            }
+            const task = await Task.findOne({ _id: taskId, project: project.id });
             if (!task) {
                 return res.status(404).json({ error: "Task not found" });
             }
@@ -74,9 +71,13 @@ export class TaskController {
      */
     static async updateTask(req: Request, res: Response) {
         try {
-            const { projectId, taskId } = req.params;
+            const { taskId } = req.params;
+            const project = req.project;
+            if (!project) {
+                return res.status(404).json({ error: "Project not found in taskController" });
+            }
             const updatedTask = await Task.findOneAndUpdate(
-                { _id: taskId, project: projectId },
+                { _id: taskId, project: project.id },
                 req.body,
                 { new: true }
             );
@@ -94,12 +95,36 @@ export class TaskController {
      */
     static async deleteTask(req: Request, res: Response) {
         try {
-            const { projectId, taskId } = req.params;
-            const deletedTask = await Task.findOneAndDelete({ _id: taskId, project: projectId });
-            if (!deletedTask) {
-                return res.status(404).json({ error: "Task not found" });
+            const project = req.project;
+            if (!project) {
+                return res.status(404).json({ error: "Project not found in taskController" });
             }
-            res.json({ message: "Task deleted successfully" });
+            const { taskId } = req.params;
+            const task = await Task.find({ _id: taskId, project: project.id });
+            if (!task) {
+                const tasksDeleted = project.tasks.find((t) => t.toString() == taskId);
+                if (tasksDeleted) {
+                    project.tasks = project.tasks.filter((t) => t.toString() !== taskId);
+                    const savedProject = await project.save();
+                    if (!savedProject) {
+                        return res.status(400).json({ error: "Failed to unlink task from project, but array was updated" });
+                    }
+                    return res.status(404).json({ error: "Task not found" });
+                } else
+                    return res.status(404).json({ error: "Task not found" });
+            } else {
+                const deletedTask = await Task.deleteOne({ _id: taskId });
+                if (!deletedTask) {
+                    return res.status(400).json({ error: "Failed to delete task" });
+                }
+                project.tasks = project.tasks.filter((t) => t.toString() !== taskId);
+                const savedProject = await project.save();
+                if (!savedProject) {
+                    return res.status(400).json({ error: "Failed to unlink task from project, but task was deleted" });
+                }
+
+                res.json({ message: "Task deleted" });
+            }
         } catch (error) {
             res.status(500).json({ error: "Failed to delete task" });
         }
