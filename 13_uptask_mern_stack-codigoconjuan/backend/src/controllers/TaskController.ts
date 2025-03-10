@@ -129,4 +129,18 @@ export class TaskController {
             res.status(500).json({ error: "Failed to delete task" });
         }
     }
+    static async getProjectTasks(req: Request, res: Response) {
+        try {
+            const project = req.project;
+            if (!project) {
+                return res.status(404).json({ error: "Project not found in taskController" });
+            }
+            const tasks = await Task.find({ project: project._id }).populate('project');
+            console.log('Retrieved tasks:', tasks);
+            return res.json(tasks);
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ error: "Failed to retrieve tasks" });
+        }
+    }
 };

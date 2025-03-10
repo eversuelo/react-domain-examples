@@ -11,7 +11,7 @@ declare global {
 export async function validateProjectExists(req: Request, res: Response, next: NextFunction) {
     try{
         const { projectId } = req.params;
-        console.info("Validating project exists",projectId);
+        console.info("Validating project exists",req);
         const project=await Project.findById(projectId);
         if(!project){
             return res.status(404).json({error:"Project not found"});

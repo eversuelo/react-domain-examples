@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import Project from "../models/Project";
 import { Types } from "mongoose";
+import Task from "../models/Task";
 
 export class ProjectController {
     static getAllProjects(req: Request, res: Response) {
@@ -33,7 +34,7 @@ export class ProjectController {
     static getProjectById(req: Request, res: Response) {
         try {
             const { id } = req.params;
-            Project.findById(id)
+            Project.findById(id).populate("tasks")
                 .then((project) => {
                     if (!project) {
                         return res.status(404).send("Project not found");
@@ -74,15 +75,25 @@ export class ProjectController {
     static deleteProject(req: Request, res: Response) {
         try {
             const { id } = req.params;
-            if(!id||!Types.ObjectId.isValid(id)){
+            if (!id || !Types.ObjectId.isValid(id)) {
                 return res.status(400).send("Invalid ID");
             }
             Project.findByIdAndDelete(id)
-                .then((project) => {
+                .then(async (project) => {
                     if (!project) {
                         return res.status(404).send("Project not found");
                     }
-                    res.send("Project deleted successfully");
+                    const tasks = project.tasks.map((task) => task._id);
+                    if (tasks) {
+                        for (const taskId of tasks) {
+                            try {
+                                await Task.findByIdAndDelete(taskId);
+                            } catch (error) {
+                                console.error(error);
+                            }
+                        }
+                    }
+                    res.send({ message: "Project deleted" }).status(200);
                 })
                 .catch((error) => {
                     res.status(500).send(error);
