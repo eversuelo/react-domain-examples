@@ -56,11 +56,14 @@ export class TaskController {
             if (!project) {
                 return res.status(404).json({ error: "Project not found in taskController" });
             }
-            const task = await Task.findOne({ _id: taskId, project: project.id });
-            if (!task) {
+            
+            if (!req.task) {
                 return res.status(404).json({ error: "Task not found" });
             }
-            res.json(task);
+            if(req.task.project.toString() !== project.id.toString()){
+                return res.status(404).json({ error: "Task not found in project" });
+            }
+            res.json(req.task);
         } catch (error) {
             res.status(500).json({ error: "Failed to retrieve task" });
         }
@@ -71,22 +74,29 @@ export class TaskController {
      */
     static async updateTask(req: Request, res: Response) {
         try {
-            const { taskId } = req.params;
             const project = req.project;
             if (!project) {
                 return res.status(404).json({ error: "Project not found in taskController" });
             }
-            const updatedTask = await Task.findOneAndUpdate(
-                { _id: taskId, project: project.id },
-                req.body,
-                { new: true }
-            );
-            if (!updatedTask) {
+            
+            // Use req.task from middleware
+            if (!req.task) {
                 return res.status(404).json({ error: "Task not found" });
             }
-            res.json(updatedTask);
+            
+            // Verify task belongs to project
+            if (req.task.project.toString() !== project.id.toString()) {
+                return res.status(404).json({ error: "Task not found in this project" });
+            }
+            
+            // Update the task
+            Object.assign(req.task, req.body);
+            const updatedTask = await req.task.save();
+            
+            return res.json(updatedTask);
         } catch (error) {
-            res.status(500).json({ error: "Failed to update task" });
+            console.error(error);
+            return res.status(500).json({ error: "Failed to update task" });
         }
     }
 
