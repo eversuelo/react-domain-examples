@@ -74,7 +74,7 @@ function Form({dispatch,state}:FormProps) {
             </div>
 
             <div className="grid grid-cols-1 gap-3">
-                <label htmlFor="calories" className="font-bold">Actividad:</label>
+                <label htmlFor="calories" className="font-bold">Calorias:</label>
                 <input value={activity.calories} id="calories" type="number" min={0}
                  onChange={handleChange}
                  className="p-2 border rounded-lg border-slate-300" placeholder="Ej. 300,200,150" />
