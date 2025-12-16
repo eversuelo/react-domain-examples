@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Sidebar from "@/components/Sidebar";
+import OrderSideBar from "@/components/OrderSideBar";
 import OrderSummary from "@/components/OrderSummary";
+import ToastNotification from "@/components/ui/ToastNotification";
+import OrderNotifications from "@/components/OrderNotifications";
+import Navbar from "@/components/ui/Navbar";
+import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/actions/auth-actions";
+import MainWrapper from "@/components/MainWrapper";
 
 export const metadata: Metadata = {
   title: "Quiosco Next.js",
@@ -13,17 +19,28 @@ const font = Inter({
   weight: ["400", "500", "600", "700", "800", "900"],
 });
 
-export default function RootLayout({
+async function getCategories() {
+  const categories = await prisma.category.findMany();
+  return categories;
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const categories = await getCategories();
+  const user = await getCurrentUser();
+  
   return (
-    <html lang="en">
+    <html lang="es">
       <body className={font.className + " antialiased bg-slate-50"}>
-        <Sidebar />
+        <ToastNotification />
+        <OrderNotifications />
+        <Navbar user={user} />
+        <OrderSideBar categories={categories} user={user} />
         <OrderSummary />
-        <main className="md:ml-72 lg:mr-96 min-h-screen">{children}</main>
+        <MainWrapper>{children}</MainWrapper>
       </body>
     </html>
   );

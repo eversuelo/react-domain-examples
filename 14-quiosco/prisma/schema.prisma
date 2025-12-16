@@ -1,0 +1,87 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  slug      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+}
+
+model Product {
+  id           Int            @id @default(autoincrement())
+  name         String         @unique
+  price        Float
+  category     Category       @relation(fields: [categoryId], references: [id])
+  categoryId   Int
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  image        String?
+  orderProducts OrderProduct[]
+}
+
+model Order {
+  id            Int            @id @default(autoincrement())
+  name          String
+  total         Float
+  status        OrderStatus    @default(PENDING)
+  userId        Int?
+  user          User?          @relation(fields: [userId], references: [id])
+  orderProducts OrderProduct[]
+  readyAt       DateTime?
+  notified      Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String
+  password  String
+  role      UserRole @default(CUSTOMER)
+  orders    Order[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model OrderProduct {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  order     Order    @relation(fields: [orderId], references: [id])
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([orderId, productId])
+}
+
+enum OrderStatus {
+  PENDING
+  PREPARING
+  READY
+  DELIVERED
+  CANCELLED
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}

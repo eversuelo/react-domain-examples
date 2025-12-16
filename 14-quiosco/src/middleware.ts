@@ -1,0 +1,32 @@
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+export function middleware(request: NextRequest) {
+  const userId = request.cookies.get('userId')?.value;
+  const pathname = request.nextUrl.pathname;
+
+  // Validar que pathname existe
+  if (!pathname) {
+    return NextResponse.next();
+  }
+
+  // Rutas protegidas que requieren autenticación
+  const adminRoutes = ['/admin'];
+  const authRoutes = ['/auth/login', '/auth/register'];
+
+  // Si el usuario está autenticado y trata de acceder a login/register
+  if (userId && authRoutes.some((route) => pathname.startsWith(route))) {
+    return NextResponse.redirect(new URL('/order/cafe', request.url));
+  }
+
+  // Si el usuario NO está autenticado y trata de acceder a rutas de admin
+  if (!userId && adminRoutes.some((route) => pathname.startsWith(route))) {
+    return NextResponse.redirect(new URL('/auth/login', request.url));
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: ['/admin/:path*', '/auth/:path*'],
+};

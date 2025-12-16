@@ -1,65 +1,70 @@
 "use client";
 
-import { useState } from "react";
-
-interface OrderItem {
-  id: number;
-  name: string;
-  price: number;
-  quantity: number;
-  image?: string;
-}
+import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
+import { useCartStore } from "@/store/cart-store";
+import OrderForm from "./OrderForm";
 
 export default function OrderSummary() {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
-  // Datos de ejemplo del pedido
-  const [orderItems, setOrderItems] = useState<OrderItem[]>([
-    { id: 1, name: "Hamburguesa Clásica", price: 89.99, quantity: 2 },
-    { id: 2, name: "Papas Fritas", price: 45.5, quantity: 1 },
-    { id: 3, name: "Refresco Grande", price: 35.0, quantity: 2 },
-  ]);
+  // Ocultar en rutas de admin
+  if (pathname?.startsWith("/admin")) {
+    return null;
+  }
+  
+  // Zustand store
+  const items = useCartStore((state) => state.items);
+  const updateQuantity = useCartStore((state) => state.updateQuantity);
+  const clearCart = useCartStore((state) => state.clearCart);
+  const getSubtotal = useCartStore((state) => state.getSubtotal);
+  const getTax = useCartStore((state) => state.getTax);
+  const getTotal = useCartStore((state) => state.getTotal);
+  const getItemCount = useCartStore((state) => state.getItemCount);
 
-  const subtotal = orderItems.reduce(
-    (acc, item) => acc + item.price * item.quantity,
-    0
-  );
-  const tax = subtotal * 0.16; // 16% IVA
-  const total = subtotal + tax;
+  // Evitar errores de hidratación
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
-  const updateQuantity = (id: number, delta: number) => {
-    setOrderItems((items) =>
-      items
-        .map((item) =>
-          item.id === id
-            ? { ...item, quantity: Math.max(0, item.quantity + delta) }
-            : item
-        )
-        .filter((item) => item.quantity > 0)
-    );
+  // Calcular valores solo en el cliente para evitar errores de hidratación
+  const subtotal = isMounted ? getSubtotal() : 0;
+  const tax = isMounted ? getTax() : 0;
+  const total = isMounted ? getTotal() : 0;
+  const itemCount = isMounted ? getItemCount() : 0;
+
+  const handleUpdateQuantity = (id: number, delta: number) => {
+    const item = items.find((item) => item.id === id);
+    if (item) {
+      updateQuantity(id, item.quantity + delta);
+    }
   };
 
   return (
     <>
       {/* Mobile Order Summary Button - Fixed at bottom */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed bottom-4 right-4 z-50 px-6 py-3 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 font-semibold"
-        aria-label="Ver resumen del pedido"
-      >
-        <div className="flex items-center gap-2">
-          <span>🛒</span>
-          <span>Ver Pedido</span>
-          <span className="bg-white text-purple-600 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">
-            {orderItems.reduce((acc, item) => acc + item.quantity, 0)}
-          </span>
-        </div>
-      </button>
+      {!isOpen && isMounted && (
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="lg:hidden fixed bottom-4 right-4 z-50 px-6 py-3 rounded-full bg-linear-to-r from-purple-600 to-pink-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 font-semibold"
+          aria-label="Ver resumen del pedido"
+        >
+          <div className="flex items-center gap-2">
+            <span>🛒</span>
+            <span>Ver Pedido</span>
+            <span className="bg-white text-purple-600 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">
+              {itemCount}
+            </span>
+          </div>
+        </button>
+      )}
 
       {/* Overlay for mobile */}
       {isOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30 backdrop-blur-sm transition-opacity duration-300"
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-30 z-30 backdrop-blur-sm transition-opacity duration-300"
           onClick={() => setIsOpen(false)}
         />
       )}
@@ -67,25 +72,25 @@ export default function OrderSummary() {
       {/* Order Summary Panel */}
       <aside
         className={`
-          fixed top-0 right-0 h-screen w-full sm:w-96 z-40
-          bg-gradient-to-b from-white via-rose-50/30 to-white
+          fixed top-16 right-0 h-[calc(100vh-4rem)] w-full sm:w-96 z-40
+          bg-linear-to-b from-white via-rose-50/30 to-white
           border-l border-purple-200/50
           shadow-2xl
           transition-transform duration-300 ease-in-out
           ${isOpen ? "translate-x-0" : "translate-x-full"}
-          lg:translate-x-0 lg:w-96
+          lg:translate-x-0 lg:w-96 xl:w-80
           flex flex-col
         `}
       >
         {/* Header */}
-        <div className="h-20 flex items-center justify-between px-6 border-b border-purple-200/50 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-rose-500/10 shrink-0">
+        <div className="h-20 flex items-center justify-between px-6 border-b border-purple-200/50 bg-linear-to-r from-purple-500/10 via-pink-500/10 to-rose-500/10 shrink-0">
           <div>
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 bg-clip-text text-transparent">
+            <h2 className="text-2xl font-bold bg-linear-to-r from-purple-600 via-pink-600 to-rose-600 bg-clip-text text-transparent">
               Tu Pedido
             </h2>
             <p className="text-xs text-slate-500 mt-1">
-              {orderItems.length}{" "}
-              {orderItems.length === 1 ? "producto" : "productos"}
+              {items.length}{" "}
+              {items.length === 1 ? "producto" : "productos"}
             </p>
           </div>
           <button
@@ -109,7 +114,7 @@ export default function OrderSummary() {
 
         {/* Order Items List */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {orderItems.length === 0 ? (
+          {!isMounted || items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <div className="text-6xl mb-4">🛒</div>
               <p className="text-slate-400 font-medium">Tu pedido está vacío</p>
@@ -118,7 +123,7 @@ export default function OrderSummary() {
               </p>
             </div>
           ) : (
-            orderItems.map((item) => (
+            items.map((item) => (
               <div
                 key={item.id}
                 className="bg-white rounded-xl p-4 shadow-md border border-purple-100/50 hover:shadow-lg hover:border-purple-200 transition-all duration-300 group"
@@ -138,7 +143,7 @@ export default function OrderSummary() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 bg-purple-50/50 rounded-lg p-1">
                     <button
-                      onClick={() => updateQuantity(item.id, -1)}
+                      onClick={() => handleUpdateQuantity(item.id, -1)}
                       className="w-8 h-8 rounded-md bg-white border border-purple-200 hover:border-red-300 hover:bg-red-50 text-red-600 font-bold transition-all duration-200 hover:scale-105"
                       aria-label="Disminuir cantidad"
                     >
@@ -148,7 +153,7 @@ export default function OrderSummary() {
                       {item.quantity}
                     </span>
                     <button
-                      onClick={() => updateQuantity(item.id, 1)}
+                      onClick={() => handleUpdateQuantity(item.id, 1)}
                       className="w-8 h-8 rounded-md bg-white border border-purple-200 hover:border-purple-400 hover:bg-purple-50 text-purple-600 font-bold transition-all duration-200 hover:scale-105"
                       aria-label="Aumentar cantidad"
                     >
@@ -168,7 +173,7 @@ export default function OrderSummary() {
         </div>
 
         {/* Summary Footer */}
-        <div className="border-t border-purple-200/50 bg-gradient-to-b from-white to-purple-50/30 p-6 space-y-4 shrink-0">
+        <div className="border-t border-purple-200/50 bg-linear-to-b from-white to-purple-50/30 p-6 space-y-4 shrink-0">
           {/* Totals */}
           <div className="space-y-2">
             <div className="flex justify-between text-slate-600">
@@ -179,32 +184,32 @@ export default function OrderSummary() {
               <span>IVA (16%)</span>
               <span className="font-medium">${tax.toFixed(2)}</span>
             </div>
-            <div className="h-px bg-gradient-to-r from-transparent via-purple-200 to-transparent my-2" />
+            <div className="h-px bg-linear-to-r from-transparent via-purple-200 to-transparent my-2" />
             <div className="flex justify-between text-lg font-bold text-slate-800">
               <span>Total</span>
-              <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              <span className="bg-linear-to-rrom-purple-600 to-pink-600 bg-clip-text text-transparent">
                 ${total.toFixed(2)}
               </span>
             </div>
           </div>
 
-          {/* Action Button */}
-          <button
-            disabled={orderItems.length === 0}
-            className="w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 text-white font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-          >
-            Completar Pedido
-          </button>
-
           {/* Clear Cart */}
-          {orderItems.length > 0 && (
+          {items.length > 0 && (
             <button
-              onClick={() => setOrderItems([])}
+              onClick={() => {
+                clearCart();
+                setIsOpen(false);
+              }}
               className="w-full py-2 text-red-600 hover:text-red-700 font-medium text-sm hover:bg-red-50 rounded-lg transition-colors"
             >
               Vaciar pedido
             </button>
           )}
+        </div>
+
+        {/* Order Form */}
+        <div className="border-t border-purple-200/50 bg-white">
+          <OrderForm />
         </div>
       </aside>
     </>
