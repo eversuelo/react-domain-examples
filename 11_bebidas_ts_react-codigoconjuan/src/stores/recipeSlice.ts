@@ -2,6 +2,7 @@ import { StateCreator } from "zustand";
 import { getCategories, getRecipes } from "../services/RecipeService";
 import { Categories, SearchRecipes } from "../types";
 import { Drink } from "../utils/recipe-schema";
+import { NotificationSliceType } from "./notificationSlice";
 
 export type RecipeSliceType = {
   categories: Categories;
@@ -17,7 +18,7 @@ export type RecipeSliceType = {
 
 const FAVORITES_STORAGE_KEY = "bebidas-favorites";
 
-export const createRecipeSlice: StateCreator<RecipeSliceType> = (set, get) => ({
+export const createRecipeSlice: StateCreator<RecipeSliceType & NotificationSliceType, [], [], RecipeSliceType> = (set, get) => ({
   categories: [],
   recipes: [],
   favorites: [],
@@ -40,6 +41,15 @@ export const createRecipeSlice: StateCreator<RecipeSliceType> = (set, get) => ({
       const newFavorites = [...currentFavorites, drink];
       set({ favorites: newFavorites });
       localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(newFavorites));
+      get().showNotification({
+        text: 'Se agregó a favoritos correctamente',
+        error: false
+      });
+    } else {
+      get().showNotification({
+        text: 'Ya existe en favoritos',
+        error: true
+      });
     }
   },
 
@@ -47,6 +57,10 @@ export const createRecipeSlice: StateCreator<RecipeSliceType> = (set, get) => ({
     const newFavorites = get().favorites.filter((fav) => fav.idDrink !== drinkId);
     set({ favorites: newFavorites });
     localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(newFavorites));
+    get().showNotification({
+      text: 'Eliminado de favoritos',
+      error: true
+    });
   },
 
   isFavorite: (drinkId: string) => {
