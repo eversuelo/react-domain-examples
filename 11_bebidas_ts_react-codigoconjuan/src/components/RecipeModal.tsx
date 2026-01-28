@@ -1,7 +1,8 @@
-import { useEffect, useState, Fragment } from "react";
+import { useEffect, useState, Fragment, useMemo } from "react";
 import { Dialog, Transition } from '@headlessui/react';
 import { FullDrink } from "../utils/recipe-schema";
 import { getDrinkById } from "../services/RecipeService";
+import { useAppStore } from "../stores/useAppStore";
 
 type RecipeModalProps = {
     isOpen: boolean;
@@ -12,6 +13,14 @@ type RecipeModalProps = {
 export default function RecipeModal({ isOpen, onClose, drinkId }: RecipeModalProps) {
     const [recipe, setRecipe] = useState<FullDrink | null>(null);
     const [loading, setLoading] = useState(false);
+    const addFavorite = useAppStore((state) => state.addFavorite);
+    const removeFavorite = useAppStore((state) => state.removeFavorite);
+    const isFavorite = useAppStore((state) => state.isFavorite);
+
+    const isFavoriteDrink = useMemo(() => {
+        if (!recipe) return false;
+        return isFavorite(recipe.idDrink);
+    }, [recipe, isFavorite]);
 
     useEffect(() => {
         if (isOpen && drinkId) {
@@ -76,6 +85,31 @@ export default function RecipeModal({ isOpen, onClose, drinkId }: RecipeModalPro
                                 >
                                     <svg className="w-6 h-6 text-slate-300 hover:text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+
+                                <button
+                                    onClick={() => {
+                                        if (!recipe) return;
+                                        if (isFavoriteDrink) {
+                                            removeFavorite(recipe.idDrink);
+                                        } else {
+                                            addFavorite({
+                                                idDrink: recipe.idDrink,
+                                                strDrink: recipe.strDrink,
+                                                strDrinkThumb: recipe.strDrinkThumb ?? ""
+                                            });
+                                        }
+                                    }}
+                                    className="absolute top-4 left-4 z-10 p-2 rounded-full bg-slate-900/80 backdrop-blur-sm border border-slate-700/50 hover:border-pink-500 hover:bg-pink-500/20 transition-all duration-200 focus:outline-none"
+                                >
+                                    <svg
+                                        className={`w-6 h-6 ${isFavoriteDrink ? 'text-pink-500 fill-current' : 'text-slate-300 hover:text-pink-500'}`}
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                                     </svg>
                                 </button>
 
